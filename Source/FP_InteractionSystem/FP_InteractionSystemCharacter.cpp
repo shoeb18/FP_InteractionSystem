@@ -9,6 +9,7 @@
 #include "InputActionValue.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "FP_InteractionSystem.h"
+#include "InteractionSystem/PlayerInteractionComponent.h"
 
 AFP_InteractionSystemCharacter::AFP_InteractionSystemCharacter()
 {
@@ -42,6 +43,9 @@ AFP_InteractionSystemCharacter::AFP_InteractionSystemCharacter()
 	// Configure character movement
 	GetCharacterMovement()->BrakingDecelerationFalling = 1500.0f;
 	GetCharacterMovement()->AirControl = 0.5f;
+
+	// Create the interaction component
+	PlayerInteractionComponent = CreateDefaultSubobject<UPlayerInteractionComponent>(TEXT("Player Interaction Component"));
 }
 
 void AFP_InteractionSystemCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -59,6 +63,9 @@ void AFP_InteractionSystemCharacter::SetupPlayerInputComponent(UInputComponent* 
 		// Looking/Aiming
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AFP_InteractionSystemCharacter::LookInput);
 		EnhancedInputComponent->BindAction(MouseLookAction, ETriggerEvent::Triggered, this, &AFP_InteractionSystemCharacter::LookInput);
+
+		// Interacting
+		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, PlayerInteractionComponent, &UPlayerInteractionComponent::InteractInput);
 	}
 	else
 	{

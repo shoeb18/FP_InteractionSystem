@@ -33,6 +33,14 @@ class AFP_InteractionSystemCharacter : public ACharacter
 
 protected:
 
+	/** Interaction component */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	class UPlayerInteractionComponent* PlayerInteractionComponent;
+
+	/** Interact Input Action */
+	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputAction* InteractAction;
+
 	/** Jump Input Action */
 	UPROPERTY(EditAnywhere, Category ="Input")
 	UInputAction* JumpAction;
