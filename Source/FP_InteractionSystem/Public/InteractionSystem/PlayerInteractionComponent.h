@@ -32,9 +32,22 @@ protected:
 	UFUNCTION()
 	void OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
+	UPROPERTY(BlueprintReadOnly, Category="InteractionComponent")
+	class UWidgetComponent* InteractionWidgetComponent;
+
+	UFUNCTION(BlueprintCallable, Category = "InteractionComponent")
+	void DisplayInteractionWidget();
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "InteractionComponent")
+	TSubclassOf<UUserWidget> InteractionWidgetClass;
+
+	UFUNCTION(BlueprintCallable, Category = "InteractionComponent")
+	AActor* GetActiveInteractable() const;
+
 public:
 
 	UFUNCTION(BlueprintCallable, Category = "InteractionComponent")
 	void InteractInput();
+
 
 };

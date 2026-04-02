@@ -5,6 +5,7 @@
 #include "GameFramework/Character.h"
 #include "Components/CapsuleComponent.h"
 #include "InteractionSystem/Interactable.h"
+#include "Components/WidgetComponent.h"
 
 // Sets default values for this component's properties
 UPlayerInteractionComponent::UPlayerInteractionComponent()
@@ -28,6 +29,15 @@ void UPlayerInteractionComponent::BeginPlay()
 	{
 		OwningCharacter->GetCapsuleComponent()->OnComponentBeginOverlap.AddDynamic(this, &UPlayerInteractionComponent::OnOverlapBegin);
 		OwningCharacter->GetCapsuleComponent()->OnComponentEndOverlap.AddDynamic(this, &UPlayerInteractionComponent::OnOverlapEnd);
+
+		InteractionWidgetComponent = Cast<UWidgetComponent>(OwningCharacter->AddComponentByClass(UWidgetComponent::StaticClass(), true, FTransform::Identity, false));
+
+		if (InteractionWidgetComponent)
+		{
+			InteractionWidgetComponent->SetWidgetClass(InteractionWidgetClass);
+			InteractionWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
+			InteractionWidgetComponent->SetDrawSize(FVector2D(250.0f, 30.0f));
+		}
 	}
 	
 }
@@ -39,6 +49,7 @@ void UPlayerInteractionComponent::OnOverlapBegin(UPrimitiveComponent* Overlapped
 		if (OtherActor->GetClass()->ImplementsInterface(UInteractable::StaticClass()))
 		{
 			InteractablesInRange.AddUnique(OtherActor);
+			DisplayInteractionWidget();
 		}
 	}
 }
@@ -50,16 +61,40 @@ void UPlayerInteractionComponent::OnOverlapEnd(UPrimitiveComponent* OverlappedCo
 		if (OtherActor->GetClass()->ImplementsInterface(UInteractable::StaticClass()))
 		{
 			InteractablesInRange.Remove(OtherActor);
+			DisplayInteractionWidget();
 		}
 	}
+}
+
+AActor* UPlayerInteractionComponent::GetActiveInteractable() const
+{
+	return InteractablesInRange[0];
 }
 
 void UPlayerInteractionComponent::InteractInput()
 {
 	if (InteractablesInRange.Num() > 0)
 	{
-		AActor* InteractableActor = InteractablesInRange[0];
-		IInteractable::Execute_Interact(InteractableActor, GetOwner());
+		IInteractable::Execute_Interact(GetActiveInteractable(), GetOwner());
+	}
+}
+
+void UPlayerInteractionComponent::DisplayInteractionWidget()
+{
+	if (!InteractablesInRange.IsEmpty())
+	{
+		if (InteractionWidgetComponent)
+		{
+			InteractionWidgetComponent->SetVisibility(true);
+			InteractionWidgetComponent->SetWorldLocation(GetActiveInteractable()->GetActorLocation());
+		}
+	}
+	else 
+	{
+		if (InteractionWidgetComponent)
+		{
+			InteractionWidgetComponent->SetVisibility(false);
+		}
 	}
 }
 
