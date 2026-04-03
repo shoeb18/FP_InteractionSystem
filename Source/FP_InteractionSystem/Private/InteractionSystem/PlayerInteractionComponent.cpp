@@ -30,6 +30,7 @@ void UPlayerInteractionComponent::BeginPlay()
 		OwningCharacter->GetCapsuleComponent()->OnComponentBeginOverlap.AddDynamic(this, &UPlayerInteractionComponent::OnOverlapBegin);
 		OwningCharacter->GetCapsuleComponent()->OnComponentEndOverlap.AddDynamic(this, &UPlayerInteractionComponent::OnOverlapEnd);
 
+		// interact widget
 		InteractionWidgetComponent = Cast<UWidgetComponent>(OwningCharacter->AddComponentByClass(UWidgetComponent::StaticClass(), true, FTransform::Identity, false));
 
 		if (InteractionWidgetComponent)
@@ -37,6 +38,7 @@ void UPlayerInteractionComponent::BeginPlay()
 			InteractionWidgetComponent->SetWidgetClass(InteractionWidgetClass);
 			InteractionWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
 			InteractionWidgetComponent->SetDrawSize(FVector2D(250.0f, 30.0f));
+			InteractionWidgetComponent->SetVisibility(false);
 		}
 	}
 	
@@ -85,8 +87,9 @@ void UPlayerInteractionComponent::DisplayInteractionWidget()
 	{
 		if (InteractionWidgetComponent)
 		{
+			const FVector InteractWidgetSpawnLocation = IInteractable::Execute_GetWidgetSpawnLocation(GetActiveInteractable());
+			InteractionWidgetComponent->SetWorldLocation(InteractWidgetSpawnLocation);
 			InteractionWidgetComponent->SetVisibility(true);
-			InteractionWidgetComponent->SetWorldLocation(GetActiveInteractable()->GetActorLocation());
 		}
 	}
 	else 

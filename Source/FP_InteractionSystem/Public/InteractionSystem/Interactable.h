@@ -25,4 +25,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interaction System")
 	void Interact(AActor* Interactor);
+	
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interaction System")
+	const FVector GetWidgetSpawnLocation() const;
 };
