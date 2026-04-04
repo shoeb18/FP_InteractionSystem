@@ -159,6 +159,7 @@ void UPlayerInteractionComponent::DisplayInteractionWidget()
 			UInteractionWidget* WidgetInstance = Cast<UInteractionWidget>(InteractionWidgetComponent->GetUserWidgetObject());
 			if (WidgetInstance)
 			{
+				WidgetInstance->CurrentInteractionType = IInteractable::Execute_GetInteractionType(GetActiveInteractable());
 				WidgetInstance->SetInteractionText();
 			}
 
