@@ -31,4 +31,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interaction System")
 	EInteractionType GetInteractionType() const;
+
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Interaction System")
+	float GetHoldDuration() const;
 };

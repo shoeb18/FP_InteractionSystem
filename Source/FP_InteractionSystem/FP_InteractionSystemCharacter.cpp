@@ -67,6 +67,8 @@ void AFP_InteractionSystemCharacter::SetupPlayerInputComponent(UInputComponent* 
 		// Interacting
 		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, PlayerInteractionComponent, &UPlayerInteractionComponent::InteractInput);
 		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Ongoing, PlayerInteractionComponent, &UPlayerInteractionComponent::OnInteractPressOngoing);
+		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Canceled, PlayerInteractionComponent, &UPlayerInteractionComponent::UnBindInteractPressDelegate);
+		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Completed, PlayerInteractionComponent, &UPlayerInteractionComponent::UnBindInteractPressDelegate);
 	}
 	else
 	{

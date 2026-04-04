@@ -6,6 +6,8 @@
 #include "Components/CapsuleComponent.h"
 #include "InteractionSystem/Interactable.h"
 #include "Components/WidgetComponent.h"
+#include "EnhancedInputComponent.h"
+#include "InteractionSystem/InteractionWidget.h"
 
 // Sets default values for this component's properties
 UPlayerInteractionComponent::UPlayerInteractionComponent()
@@ -39,6 +41,7 @@ void UPlayerInteractionComponent::BeginPlay()
 			InteractionWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
 			InteractionWidgetComponent->SetDrawSize(FVector2D(250.0f, 30.0f));
 			InteractionWidgetComponent->SetVisibility(false);
+
 		}
 	}
 	
@@ -70,33 +73,65 @@ void UPlayerInteractionComponent::OnOverlapEnd(UPrimitiveComponent* OverlappedCo
 
 AActor* UPlayerInteractionComponent::GetActiveInteractable() const
 {
-	return InteractablesInRange.Last();
+	return InteractablesInRange[0];
 }
 
 void UPlayerInteractionComponent::InteractBegin()
 {
-	if (IsValid(GetActiveInteractable()))
+	if (!InteractablesInRange.IsEmpty())
 	{
 		EInteractionType InteractionType = IInteractable::Execute_GetInteractionType(GetActiveInteractable());
 
-	switch (InteractionType)
-	{
+		switch (InteractionType)
+		{
 		case EInteractionType::Press:
 			InteractWithActiveInteractable();
 			break;
 
 		case EInteractionType::Hold:
 			// Handle Hold interaction
-			UE_LOG(LogTemp, Log, TEXT("Held"));
+			evt_OnInteractPressOngoing.AddDynamic(this, &UPlayerInteractionComponent::OnInteractionInputPress);
 			break;
+		}
 	}
 }
 
 void UPlayerInteractionComponent::InteractWithActiveInteractable()
 {
-	if (IsValid(GetActiveInteractable()))
+	if (!InteractablesInRange.IsEmpty())
 	{
 		IInteractable::Execute_Interact(GetActiveInteractable(), GetOwner());
+	}
+}
+
+void UPlayerInteractionComponent::OnInteractionInputPress(float ElapsedSeconds)
+{
+	const float HoldDuration = IInteractable::Execute_GetHoldDuration(GetActiveInteractable());
+
+	UInteractionWidget* WidgetInstance = Cast<UInteractionWidget>(InteractionWidgetComponent->GetUserWidgetObject());
+
+	if (WidgetInstance)
+	{
+		// set percent
+		WidgetInstance->InteractionProgressBar->SetPercent(ElapsedSeconds / HoldDuration);
+	}
+
+	if (ElapsedSeconds > HoldDuration)
+	{
+		InteractWithActiveInteractable();
+		UnBindInteractPressDelegate();
+	}
+}
+
+void UPlayerInteractionComponent::UnBindInteractPressDelegate()
+{
+	evt_OnInteractPressOngoing.RemoveDynamic(this, &UPlayerInteractionComponent::OnInteractionInputPress);
+
+	UInteractionWidget* WidgetInstance = Cast<UInteractionWidget>(InteractionWidgetComponent->GetUserWidgetObject());
+	if (WidgetInstance)
+	{
+		// reset percent
+		WidgetInstance->InteractionProgressBar->SetPercent(0);
 	}
 }
 
@@ -107,6 +142,7 @@ void UPlayerInteractionComponent::OnInteractPressOngoing(const FInputActionInsta
 	UE_LOG(LogTemp, Log, TEXT("Elapsed Time: %f"), ElapsedSeconds);
 
 	// call event 
+	evt_OnInteractPressOngoing.Broadcast(ElapsedSeconds);
 }
 
 void UPlayerInteractionComponent::InteractInput()
@@ -116,13 +152,20 @@ void UPlayerInteractionComponent::InteractInput()
 
 void UPlayerInteractionComponent::DisplayInteractionWidget()
 {
-	if (IsValid(GetActiveInteractable()))
+	if (!InteractablesInRange.IsEmpty())
 	{
 		if (InteractionWidgetComponent)
 		{
+			UInteractionWidget* WidgetInstance = Cast<UInteractionWidget>(InteractionWidgetComponent->GetUserWidgetObject());
+			if (WidgetInstance)
+			{
+				WidgetInstance->SetInteractionText();
+			}
+
 			const FVector InteractWidgetSpawnLocation = IInteractable::Execute_GetWidgetSpawnLocation(GetActiveInteractable());
 			InteractionWidgetComponent->SetWorldLocation(InteractWidgetSpawnLocation);
 			InteractionWidgetComponent->SetVisibility(true);
+
 		}
 	}
 	else 
