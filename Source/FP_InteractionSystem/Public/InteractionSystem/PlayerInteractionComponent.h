@@ -6,6 +6,15 @@
 #include "Components/ActorComponent.h"
 #include "PlayerInteractionComponent.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInteractionPressOngoing, float, ElapsedSeconds);
+
+// Interaction Types
+UENUM(BlueprintType)
+enum class EInteractionType : uint8
+{
+	Press UMETA(DisplayName = "Press"),
+	Hold  UMETA(DisplayName = "Hold")
+};
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class FP_INTERACTIONSYSTEM_API UPlayerInteractionComponent : public UActorComponent
@@ -44,10 +53,23 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "InteractionComponent")
 	AActor* GetActiveInteractable() const;
 
-public:
+	UFUNCTION(BlueprintCallable, Category = "InteractionComponent")
+	void InteractBegin();
 
 	UFUNCTION(BlueprintCallable, Category = "InteractionComponent")
+	void InteractWithActiveInteractable();
+
+
+public:
+
+	UFUNCTION()
 	void InteractInput();
+
+	UFUNCTION()
+	void OnInteractPressOngoing(const FInputActionInstance& Instance);
+
+	UPROPERTY(BlueprintAssignable, Category = "InteractionComponent")
+	FOnInteractionPressOngoing evt_OnInteractPressOngoing;
 
 
 };

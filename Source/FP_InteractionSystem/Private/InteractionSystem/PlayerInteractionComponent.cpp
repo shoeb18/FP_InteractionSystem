@@ -70,20 +70,53 @@ void UPlayerInteractionComponent::OnOverlapEnd(UPrimitiveComponent* OverlappedCo
 
 AActor* UPlayerInteractionComponent::GetActiveInteractable() const
 {
-	return InteractablesInRange[0];
+	return InteractablesInRange.Last();
 }
 
-void UPlayerInteractionComponent::InteractInput()
+void UPlayerInteractionComponent::InteractBegin()
 {
-	if (InteractablesInRange.Num() > 0)
+	if (IsValid(GetActiveInteractable()))
+	{
+		EInteractionType InteractionType = IInteractable::Execute_GetInteractionType(GetActiveInteractable());
+
+	switch (InteractionType)
+	{
+		case EInteractionType::Press:
+			InteractWithActiveInteractable();
+			break;
+
+		case EInteractionType::Hold:
+			// Handle Hold interaction
+			UE_LOG(LogTemp, Log, TEXT("Held"));
+			break;
+	}
+}
+
+void UPlayerInteractionComponent::InteractWithActiveInteractable()
+{
+	if (IsValid(GetActiveInteractable()))
 	{
 		IInteractable::Execute_Interact(GetActiveInteractable(), GetOwner());
 	}
 }
 
+void UPlayerInteractionComponent::OnInteractPressOngoing(const FInputActionInstance& Instance)
+{
+	float ElapsedSeconds = Instance.GetElapsedTime();
+
+	UE_LOG(LogTemp, Log, TEXT("Elapsed Time: %f"), ElapsedSeconds);
+
+	// call event 
+}
+
+void UPlayerInteractionComponent::InteractInput()
+{
+	InteractBegin();
+}
+
 void UPlayerInteractionComponent::DisplayInteractionWidget()
 {
-	if (!InteractablesInRange.IsEmpty())
+	if (IsValid(GetActiveInteractable()))
 	{
 		if (InteractionWidgetComponent)
 		{
