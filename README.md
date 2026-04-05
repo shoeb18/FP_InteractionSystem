@@ -1,6 +1,13 @@
 # FP_InteractionSystem
 First Person Interaction System in UE5.6
 
+# Controls
+Use "E" to Interact with any interactables
+Inspection Mode Controls - 
+Use Mousewheel to zoom in and out
+Left Click drag to rotate object
+Right Click drag to move (pan) object
+Press "E" to exit inspect mode
 
 # System Design
 Component Based Design
