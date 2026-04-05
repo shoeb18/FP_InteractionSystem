@@ -22,6 +22,8 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
 	// owning character
 	UPROPERTY(BlueprintReadOnly, Category="InteractionComponent")
 	ACharacter* OwningCharacter;	
@@ -44,6 +46,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "InteractionComponent")
 	TSubclassOf<class UInteractionWidget> InteractionWidgetClass;
 
+	UPROPERTY(EditAnywhere, Category = "InteractionComponent")
+	UMaterialInterface* ObjectHighlightMaterial;
+
 	UFUNCTION(BlueprintCallable, Category = "InteractionComponent")
 	AActor* GetActiveInteractable() const;
 
@@ -55,19 +60,24 @@ protected:
 
 	UFUNCTION()
 	void OnInteractionInputPress(float ElapsedSeconds);
+
+	UFUNCTION()
+	void SetItemHightlight(AActor* Item, bool Show);
+
+	UPROPERTY(BlueprintAssignable, Category = "InteractionComponent")
+	FOnInteractionPressOngoing evt_OnInteractPressOngoing;
 	
 
 
 public:
+
+	/** IMPORTANT - BIND THESE INPUTS IN PLAYER CLASS */
 
 	UFUNCTION()
 	void InteractInput();
 
 	UFUNCTION()
 	void OnInteractPressOngoing(const FInputActionInstance& Instance);
-
-	UPROPERTY(BlueprintAssignable, Category = "InteractionComponent")
-	FOnInteractionPressOngoing evt_OnInteractPressOngoing;
 
 	UFUNCTION()
 	void UnBindInteractPressDelegate();

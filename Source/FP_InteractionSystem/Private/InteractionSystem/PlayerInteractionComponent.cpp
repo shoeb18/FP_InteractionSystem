@@ -37,7 +37,14 @@ void UPlayerInteractionComponent::BeginPlay()
 
 		if (InteractionWidgetComponent)
 		{
-			InteractionWidgetComponent->SetWidgetClass(InteractionWidgetClass);
+			if (InteractionWidgetClass)
+			{
+				InteractionWidgetComponent->SetWidgetClass(InteractionWidgetClass);
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Widget class for interaction is not assigned in interaction component"));
+			}
 			InteractionWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
 			InteractionWidgetComponent->SetDrawSize(FVector2D(250.0f, 30.0f));
 			InteractionWidgetComponent->SetVisibility(false);
@@ -54,6 +61,7 @@ void UPlayerInteractionComponent::OnOverlapBegin(UPrimitiveComponent* Overlapped
 		if (OtherActor->GetClass()->ImplementsInterface(UInteractable::StaticClass()))
 		{
 			InteractablesInRange.AddUnique(OtherActor);
+			SetItemHightlight(OtherActor, true);
 			DisplayInteractionWidget();
 		}
 	}
@@ -66,6 +74,7 @@ void UPlayerInteractionComponent::OnOverlapEnd(UPrimitiveComponent* OverlappedCo
 		if (OtherActor->GetClass()->ImplementsInterface(UInteractable::StaticClass()))
 		{
 			InteractablesInRange.Remove(OtherActor);
+			SetItemHightlight(OtherActor, false);
 			DisplayInteractionWidget();
 		}
 	}
@@ -73,26 +82,29 @@ void UPlayerInteractionComponent::OnOverlapEnd(UPrimitiveComponent* OverlappedCo
 
 AActor* UPlayerInteractionComponent::GetActiveInteractable() const
 {
-	return InteractablesInRange[0];
+	if (InteractablesInRange.Num() > 0)
+	{
+		return InteractablesInRange[0];
+	}
+	return nullptr;
 }
 
 void UPlayerInteractionComponent::InteractBegin()
 {
-	if (!InteractablesInRange.IsEmpty())
+	AActor* ActiveInteractable = GetActiveInteractable();
+	if (!ActiveInteractable) return;
+
+	EInteractionType InteractionType = IInteractable::Execute_GetInteractionType(ActiveInteractable);
+
+	switch (InteractionType)
 	{
-		EInteractionType InteractionType = IInteractable::Execute_GetInteractionType(GetActiveInteractable());
+	case EInteractionType::Press:
+		InteractWithActiveInteractable();
+		break;
 
-		switch (InteractionType)
-		{
-		case EInteractionType::Press:
-			InteractWithActiveInteractable();
-			break;
-
-		case EInteractionType::Hold:
-			// Handle Hold interaction
-			evt_OnInteractPressOngoing.AddDynamic(this, &UPlayerInteractionComponent::OnInteractionInputPress);
-			break;
-		}
+	case EInteractionType::Hold:
+		evt_OnInteractPressOngoing.AddDynamic(this, &UPlayerInteractionComponent::OnInteractionInputPress);
+		break;
 	}
 }
 
@@ -106,13 +118,15 @@ void UPlayerInteractionComponent::InteractWithActiveInteractable()
 
 void UPlayerInteractionComponent::OnInteractionInputPress(float ElapsedSeconds)
 {
-	const float HoldDuration = IInteractable::Execute_GetHoldDuration(GetActiveInteractable());
+	AActor* ActiveInteractable = GetActiveInteractable();
+	if (!ActiveInteractable) return;
+
+	const float HoldDuration = IInteractable::Execute_GetHoldDuration(ActiveInteractable);
 
 	UInteractionWidget* WidgetInstance = Cast<UInteractionWidget>(InteractionWidgetComponent->GetUserWidgetObject());
 
-	if (WidgetInstance)
+	if (WidgetInstance && WidgetInstance->InteractionProgressBar)
 	{
-		// set percent
 		WidgetInstance->InteractionProgressBar->SetPercent(ElapsedSeconds / HoldDuration);
 	}
 
@@ -123,15 +137,44 @@ void UPlayerInteractionComponent::OnInteractionInputPress(float ElapsedSeconds)
 	}
 }
 
+void UPlayerInteractionComponent::SetItemHightlight(AActor* Item, bool Show)
+{
+	if (!Item) return;
+
+	TArray<UStaticMeshComponent*> MeshComps;
+	Item->GetComponents<UStaticMeshComponent>(MeshComps);
+
+	if (Show)
+	{
+		for (UStaticMeshComponent* MeshComp : MeshComps)
+		{
+			if (MeshComp)
+			{
+				MeshComp->SetOverlayMaterial(ObjectHighlightMaterial);
+			}
+		}
+	}
+	else 
+	{
+		for (UStaticMeshComponent* MeshComp : MeshComps)
+		{
+			if (MeshComp)
+			{
+				MeshComp->SetOverlayMaterial(nullptr);
+			}
+		}
+	}
+}
+
 void UPlayerInteractionComponent::UnBindInteractPressDelegate()
 {
 	evt_OnInteractPressOngoing.RemoveDynamic(this, &UPlayerInteractionComponent::OnInteractionInputPress);
 
 	UInteractionWidget* WidgetInstance = Cast<UInteractionWidget>(InteractionWidgetComponent->GetUserWidgetObject());
-	if (WidgetInstance)
+
+	if (WidgetInstance && WidgetInstance->InteractionProgressBar)
 	{
-		// reset percent
-		WidgetInstance->InteractionProgressBar->SetPercent(0);
+		WidgetInstance->InteractionProgressBar->SetPercent(0); // reset progress bar
 	}
 }
 
@@ -152,30 +195,47 @@ void UPlayerInteractionComponent::InteractInput()
 
 void UPlayerInteractionComponent::DisplayInteractionWidget()
 {
-	if (!InteractablesInRange.IsEmpty())
+	AActor* ActiveInteractable = GetActiveInteractable();
+
+	if (ActiveInteractable)
 	{
 		if (InteractionWidgetComponent)
 		{
 			UInteractionWidget* WidgetInstance = Cast<UInteractionWidget>(InteractionWidgetComponent->GetUserWidgetObject());
 			if (WidgetInstance)
 			{
-				WidgetInstance->CurrentInteractionType = IInteractable::Execute_GetInteractionType(GetActiveInteractable());
+				WidgetInstance->CurrentInteractionType = IInteractable::Execute_GetInteractionType(ActiveInteractable);
 				WidgetInstance->SetInteractionText();
 			}
 
-			const FVector InteractWidgetSpawnLocation = IInteractable::Execute_GetWidgetSpawnLocation(GetActiveInteractable());
+			const FVector InteractWidgetSpawnLocation = IInteractable::Execute_GetWidgetSpawnLocation(ActiveInteractable);
 			InteractionWidgetComponent->SetWorldLocation(InteractWidgetSpawnLocation);
 			InteractionWidgetComponent->SetVisibility(true);
-
 		}
 	}
-	else 
+	else
 	{
 		if (InteractionWidgetComponent)
 		{
 			InteractionWidgetComponent->SetVisibility(false);
 		}
 	}
+}
+
+void UPlayerInteractionComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (OwningCharacter)
+	{
+		if (UCapsuleComponent* Capsule = OwningCharacter->GetCapsuleComponent())
+		{
+			Capsule->OnComponentBeginOverlap.RemoveDynamic(this, &UPlayerInteractionComponent::OnOverlapBegin);
+			Capsule->OnComponentEndOverlap.RemoveDynamic(this, &UPlayerInteractionComponent::OnOverlapEnd);
+		}
+	}
+
+	UnBindInteractPressDelegate();
+
+	Super::EndPlay(EndPlayReason);
 }
 
 
